@@ -10,3 +10,5 @@ Master's degree claiming thesis
 - This visual information is integrated with network parameters to estimate the data rate, taking into account the unique propagation characteristics of mmWave signals, such as line-of-sight (LoS) sensitivity and high path loss.
 - It also uses a deep reinforcement learning (DRL) algorithm to optimize BS association and balance network load, data rate, and QoS to improve overall system performance. This approach aims to minimize unnecessary BS switches and improve network efficiency in dynamic mmWave environments.
 
+
+![image](https://github.com/user-attachments/assets/9a1a3715-2c73-4a41-9e2c-e947d321f9d7)
