@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+# 위 방법을 통해 추출한 3D Coor 좌표를 사용해 모델 학습
 df = pd.read_csv('DRL\predictions.csv')
 
 BS_num = 4
