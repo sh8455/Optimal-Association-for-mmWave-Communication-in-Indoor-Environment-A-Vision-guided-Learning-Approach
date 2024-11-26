@@ -13,6 +13,6 @@ Master's degree claiming thesis
 
 ![image](https://github.com/user-attachments/assets/9a1a3715-2c73-4a41-9e2c-e947d321f9d7)
 
-User detection - Yolov5 //
-User blocking - Raytracing, Segmentation //
-User Depth - Depth Anything V2 //
+- User detection - Yolov5 
+- User blocking - Raytracing, Segmentation 
+- User Depth - Depth Anything V2 
