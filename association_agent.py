@@ -30,14 +30,12 @@ class CustomEnv(gym.Env):
 # Main 함수
 if __name__ == '__main__':
     env = CustomEnv()
-    # env2 = Monitor(env)
  
-    # model = A2C("MlpPolicy", env, verbose=1, tensorboard_log="./DRL/logs/")
-    model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="logs")
+    model = A2C("MlpPolicy", env, verbose=1, tensorboard_log="./DRL/logs/")
     eval_callback = EvalCallback(env, eval_freq=100, deterministic=True, render=False,best_model_save_path="./logs/")
    
-    model.learn(total_timesteps=10000000, callback=[eval_callback])
-    model.save("ppo_v2")
+    model.learn(total_timesteps=100000, callback=[eval_callback])
+    model.save("A2C_v2")
     results = load_results("./logs/")
     plot_results(results, title="My Training Results")
     
