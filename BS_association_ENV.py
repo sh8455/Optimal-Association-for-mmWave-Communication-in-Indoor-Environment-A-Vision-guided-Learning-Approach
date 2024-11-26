@@ -2,6 +2,7 @@ import numpy as np
 import CalCoor
 import Coordinates
 import matlab.engine
+from collections import Counter
 
 K_B = 1.38064852e-23 # 볼츠만 상수
 T = 290 # 절대온도
@@ -24,6 +25,7 @@ class BsAssociation:
         # 환경
         self.BS_num = BS_num
         self.UE_num = UE_num
+        self.BS_budget = 5
         self.UE_locations, self.BS_locations = Coordinates.change_coor_np(Coordinates.UE_coordinates, Coordinates.BS_Coordinates, self.time_step)
         self.distance = []
         self.selected_BS = []
@@ -60,26 +62,21 @@ class BsAssociation:
         self.UE_locations, self.BS_locations = Coordinates.change_coor_np(Coordinates.UE_coordinates, Coordinates.BS_Coordinates, self.time_step)
             
         self.distance = []
-        
-        cnt1, cnt2, cnt3, cnt4 = 0, 0, 0, 0
     
         for i in range(self.BS_num):
             d_result = []
+            DRresult = []
             for j in range(self.UE_num):
                 d = self.calDistance(self.UE_locations[j], self.BS_locations[i])
                 d_result.append(d)
+                DR = self.calDR(self.BS[i]['max_RT'][j][0])/1e9
+                DRresult.append(DR)
             self.distance.append(np.array(d_result))
+            self.BS[i]['choice_maxDR'] = np.array(DRresult)
             
         self.selected_BS = [0,0,0,0,0,0,0,0,0,0]
         
         self.load_raytracing_results(self.BS_locations, self.UE_locations)
-            
-        for i in range(self.BS_num):
-            DRresult = []
-            for j in range(self.UE_num):
-                DR = self.calDR(self.BS[i]['max_RT'][j][0])/1e9
-                DRresult.append(DR)
-            self.BS[i]['choice_maxDR'] = np.array(DRresult)
         
         return self._get_state()
     
@@ -101,6 +98,7 @@ class BsAssociation:
         
         return DR
     
+    # 보상 계산
     def calReward(self, selected_BS):
         selected_maxDR = 0
         
@@ -110,36 +108,40 @@ class BsAssociation:
             
         return selected_maxDR
             
+    # 스텝
     def step(self, action):
         print(f"step: {self.time_step}")
         print(f"action: {action}")
         
         self.selected_BS = action
         
-        self.UE_locations, self.BS_locations = Coordinates.change_coor_np(Coordinates.UE_coordinates, Coordinates.BS_Coordinates, self.time_step)
+        cnt_BSmatching = Counter(self.selected_BS)
         
+        self.UE_locations, self.BS_locations = Coordinates.change_coor_np(Coordinates.UE_coordinates, Coordinates.BS_Coordinates, self.time_step)
+            
+        # 각 BS별로 각 UE에게 제공 가능한 가장 높은 DR 구성요소 추출
+        self.load_raytracing_results(self.BS_locations, self.UE_locations) 
+        
+        # UE별로 DR과 거리 계산
         for i in range(self.BS_num):
             d_result = []
+            DRresult = []
             for j in range(self.UE_num):
                 d = self.calDistance(self.UE_locations[j], self.BS_locations[i])
                 d_result.append(d)
-            self.distance.append(d_result)
-            
-        
-        # 각 BS별로 각 UE에게 제공 가능한 가장 높은 DR 구성요소 추출
-        self.load_raytracing_results(self.BS_locations, self.UE_locations)
-        
-        # UE별로 DR 계산
-        for i in range(self.BS_num):
-            DRresult = []
-            for j in range(self.UE_num):
                 DR = self.calDR(self.BS[i]['max_RT'][j][0])/1e9
                 DRresult.append(DR)  
-            self.BS[i]['choice_maxDR'] = np.array(DRresult)    
+            self.distance.append(d_result)
+            self.BS[i]['choice_maxDR'] = np.array(DRresult) 
             
         self.time_step += 1
         
         done = False
+        
+        # BS의 매칭 개수 제약
+        for i in range(self.BS_num):
+            if cnt_BSmatching[i] >= 5:
+                done = True
         
         if self.time_step == 24:
             done = True
@@ -149,7 +151,7 @@ class BsAssociation:
     
     def _get_state(self):
         obs = []
-        propagation_dis = []
+        sum_pdis = []
         
         distance_BS1 = self.distance[0]
         distance_BS2 = self.distance[1]
@@ -162,9 +164,20 @@ class BsAssociation:
         dr_4 = self.BS[1]['choice_maxDR']
         
         selected_BS = self.selected_BS
+        
+        for i in range(self.BS_num):
+            propagation_dis = []
+            for j in range(self.UE_num):
+                propagation_dis.append(self.BS[i]['choice_maxRT'][j][0])
+            sum_pdis.append(np.array(propagation_dis))
+            
+        sum_pdis1 = sum_pdis[0]
+        sum_pdis2 = sum_pdis[1]
+        sum_pdis3 = sum_pdis[2]
+        sum_pdis4 = sum_pdis[3]
 
         obs = np.concatenate(
-            [distance_BS1, distance_BS2, distance_BS3, distance_BS4, dr_1, dr_2, dr_3, dr_4, selected_BS]
+            [distance_BS1, distance_BS2, distance_BS3, distance_BS4, dr_1, dr_2, dr_3, dr_4, selected_BS, sum_pdis1, sum_pdis2, sum_pdis3, sum_pdis4]
         )
 
         return np.array(obs)
